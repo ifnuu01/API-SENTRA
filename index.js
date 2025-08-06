@@ -6,6 +6,7 @@ import path from 'path';
 import connectDB from './config/db.js';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js'
+import colorRoutes from './routes/colorRoutes.js'
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 3001;
 
 app.use('/api/auth', authRoutes);
+app.use('/api/colors', colorRoutes);
 
 app.get('/', (req, res) => {
     res.json({message: 'WELCOME TO API SENTRA'})
@@ -41,4 +43,4 @@ connectDB().then(() => {
     app.listen(PORT, () => {
         console.log('Server SENTRA Running on http://localhost:' + PORT);
     });
-})
+});
