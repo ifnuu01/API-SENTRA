@@ -55,7 +55,7 @@ export const getDetectColor = async (req, res) => {
     try {
         const colorHistory = await ColorHistory.find({
             user: req.user.id
-        })
+        }).sort({detectedAt: -1});
 
         const colorHistoryImage = colorHistory.map(history => {
             const historyObj = history.toObject();

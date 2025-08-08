@@ -15,8 +15,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// configurasi untuk fe (origin, credentials) belom
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:8081'],
+    optionsSuccessStatus: 200,
+}));
 
 app.use(morgan('dev'));
 app.use(express.json({limit : '10mb'}));
@@ -40,7 +42,7 @@ app.use((req, res) => {
 });
 
 connectDB().then(() => {
-    app.listen(PORT, () => {
-        console.log('Server SENTRA Running on http://localhost:' + PORT);
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log('Server SENTRA Running on http://192.168.1.17:' + PORT);
     });
 });

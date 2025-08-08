@@ -15,14 +15,30 @@ import { sendVerificationEmail } from "../utils/emailService.js";
 export const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
-
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: "Email already exists" });
-        }
-
         const verificationCode = crypto.randomInt(100000, 999999).toString();
         const verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+        
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            if (existingUser.isVerified) {
+                return res.status(400).json({ message: "Email sudah terdaftar" });
+            }
+
+            existingUser.verificationCode = verificationCode;
+            existingUser.verificationExpires = verificationExpires;
+            existingUser.name = name;
+            existingUser.password = await bcrypt.hash(password, 12);
+
+            await existingUser.save();
+            await sendVerificationEmail(email, verificationCode, name);
+
+            res.status(201).json({
+                message: "Email sudah terdaftar silahkan verfikasi",
+                user: {
+                    email: existingUser.email,
+                }
+            })
+        }
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -40,8 +56,10 @@ export const registerUser = async (req, res) => {
         await sendVerificationEmail(email, verificationCode, name);
 
         res.status(201).json({
-            message: "User berhasil dibuat",
-            userId: user._id
+            message: "Email sudah terdaftar silahkan verifikasi",
+            user: {
+                email: user.email,
+            }
         });
     } catch (error) {
         res.status(500).json({message: error.message})
@@ -138,6 +156,26 @@ export const resendVerificationCode = async (req, res) => {
         await sendVerificationEmail(email, verificationCode, user.name);
 
         res.status(200).json({message: 'Kode verifikasi berhasil dikirim'});
+    } catch (error) {
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+export const getMe = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId).select("-password");
+
+        if (!user){
+            res.status(400).json({message: 'Data profile tidak ada'})
+        }
+        res.json({
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email
+            }
+        })
     } catch (error) {
         res.status(500).json({message: "Internal Server Error"});
     }
