@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import crypto from 'crypto';
 import { generateToken } from "../utils/generateToken.js";
 import { sendVerificationEmail } from "../utils/emailService.js";
+import ColorHistory from "../models/ColorHistory.js";
 
 
 /*
@@ -167,7 +168,7 @@ export const getMe = async (req, res) => {
         const user = await User.findById(userId).select("-password");
 
         if (!user){
-            res.status(400).json({message: 'Data profile tidak ada'})
+            return res.status(400).json({message: 'Data profile tidak ada'})
         }
         res.json({
             user: {
@@ -176,6 +177,92 @@ export const getMe = async (req, res) => {
                 email: user.email
             }
         })
+    } catch (error) {
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+export const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { name } = req.body;
+        const user = await User.findById(userId);
+        if (!user){
+            return res.status(400).json({message: 'Data pengguna tidak ditemukan'})
+        }
+
+        user.name = name;
+        await user.save();
+
+        res.json({
+            message: 'Nama berhasil diperbarui'
+        });
+
+    } catch (error) {
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+export const updatePassword = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { oldPassword, newPassword} = req.body;
+        const user = await User.findById(userId);
+
+        if (!user){
+            return res.status(400).json({message: 'Data pengguna tidak ditemukan'});
+        }
+
+        const isValidPassword = await bcrypt.compare(oldPassword, user.password);
+
+        if(!isValidPassword) {
+            return res.status(400).json({message: 'Password lama tidak sesuai'});
+        }
+        
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        user.password = hashedPassword;
+        await user.save();
+
+        res.json({
+            message: 'Password berhasil diperbarui'
+        })
+
+    } catch (error) {
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+
+export const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                message: 'Data pengguna tidak ditemukan'
+            });
+        }
+        const colorHistories = await ColorHistory.find({ user: userId });
+        
+        for (const history of colorHistories) {
+            if (history.image) {
+                try {
+                    const imagePath = path.join(process.cwd(), history.image);
+                    if (fs.existsSync(imagePath)) {
+                        fs.unlinkSync(imagePath);
+                    }
+                } catch (fileError) {
+                    console.error('Error deleting file:', fileError);
+                }
+            }
+        }
+        await ColorHistory.deleteMany({ user: userId });
+        await User.findByIdAndDelete(userId);
+        
+        res.json({
+            message: 'Akun berhasil dihapus'
+        });
     } catch (error) {
         res.status(500).json({message: "Internal Server Error"});
     }

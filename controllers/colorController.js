@@ -119,3 +119,37 @@ export const deleteDetectColor = async (req, res) => {
         res.status(500).json({message: error.message});   
     }
 }
+
+export const deleteAllDetectColor = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const colorHistories = await ColorHistory.find({ user: userId });
+
+        if (colorHistories.length === 0) {
+            return res.status(404).json({
+                message: 'Tidak ada riwayat warna yang ditemukan'
+            });
+        }
+
+        colorHistories.forEach(history => {
+            if (history.image) {
+                const imagePath = path.join(process.cwd(), history.image);
+                if (fs.existsSync(imagePath)) {
+                    fs.unlinkSync(imagePath);
+                }
+            }
+        });
+
+        const result = await ColorHistory.deleteMany({ user: userId });
+
+        res.json({
+            message: 'Semua riwayat warna berhasil dihapus',
+            deletedCount: result.deletedCount
+        });
+
+    } catch (error) {
+        console.error('Error detecting color:', error);
+        res.status(500).json({message: error.message});
+    }
+}

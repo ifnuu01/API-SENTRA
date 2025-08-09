@@ -15,6 +15,38 @@ export const handleValidationErrors = (req, res, next) => {
     next();
 }
 
+export const validateUpdateProfile = [
+    body('name')
+        .trim()
+        .isLength({ min: 2 })
+        .withMessage('Nama minimal 2 karakter').bail()
+        .matches(/^[a-zA-Z\s]+$/)
+        .withMessage('Nama hanya boleh huruf dan spasi'),
+    
+    handleValidationErrors
+]
+
+export const validateUpdatePassword = [
+    body('oldPassword')
+        .isLength({min: 6}).withMessage('Password minimal 6 karakter').bail()
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('Password harus mengandung huruf besar, kecil, dan angka'),
+    body('newPassword')
+        .isLength({min: 6}).withMessage('Password minimal 6 karakter').bail()
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('Password harus mengandung huruf besar, kecil, dan angka'),
+    body('confirmPassword')
+        .notEmpty().withMessage('Konfirmasi Password tidak boleh kosong').bail()
+        .custom((value, {req}) => {
+            if(value !== req.body.newPassword){
+                throw new Error('Konfirmasi Password tidak sesuai dengan Password Baru');
+            }
+            return true;
+        }),
+    
+    handleValidationErrors
+]
+
 // login
 export const validateLogin = [
     body('email')
@@ -48,6 +80,7 @@ export const validateRegister = [
         .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
         .withMessage('Password harus mengandung huruf besar, kecil, dan angka'),
     body('confirmPassword')
+        .notEmpty().withMessage('Konfirmasi Password tidak boleh kosong').bail()
         .custom((value, {req}) => {
             if(value !== req.body.password){
                 throw new Error('Konfirmasi Password tidak sesuai dengan Password Baru');
