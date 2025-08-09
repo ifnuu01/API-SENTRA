@@ -10,13 +10,7 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors({
-    origin: [
-        'http://localhost:8081',
-        'https://frontendkamu.onrender.com'
-    ],
-    optionsSuccessStatus: 200,
-}));
+app.use(cors({ origin: '*' }));
 
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
