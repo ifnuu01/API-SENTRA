@@ -2,7 +2,7 @@ import express from 'express';
 import { upload } from '../middlewares/upload.js';
 import { deleteAllDetectColor, deleteDetectColor, detectColor, getDetectColor, getDetectColorById } from '../controllers/colorController.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
-import { chatWithGemini } from '../controllers/chatBotController.js';
+import { chatWithGemini } from '../controllers/chatbotController.js';
 
 const router = express.Router();
 
