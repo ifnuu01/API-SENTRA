@@ -12,6 +12,7 @@
   "type": "module",
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "cloudinary": "^1.41.3",
     "color-namer": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -23,6 +24,7 @@
     "mongoose": "^8.17.0",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^7.0.5",
     "sharp": "^0.34.3"
   },

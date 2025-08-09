@@ -1,55 +1,48 @@
 import getColors from 'get-image-colors';
 import namer from 'color-namer';
-import path from 'path';
-import fs from 'fs';
 import ColorHistory from '../models/ColorHistory.js';
+import cloudinary from '../config/cloudinary.js';
 
 export const detectColor = async (req, res) => {
-    try {
-        if(!req.file) {
-            return res.status(400).json({message: 'Tidak ada file yang terkirim'});
-        }
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Tidak ada file yang terkirim' });
+    }
 
-        const imagePath = path.join(process.cwd(), req.file.path);
+    const imageUrl = req.file.path; 
 
-        if (!fs.existsSync(imagePath)) {
-            return res.status(404).json({message: 'File tidak ditemukan'});
-        }
+    const colors = await getColors(imageUrl, { type: req.file.mimetype });
 
-        const colors = await getColors(imagePath);
+    if (!colors || colors.length === 0) {
+      return res.status(400).json({ message: 'Tidak dapat mendeteksi warna dari gambar' });
+    }
 
-        if (!colors || colors.length === 0) {
-            return res.status(400).json({message: 'Tidak dapat mendeteksi warna dari gambar'});
-        }
+    const dominant = colors[0];
+    const hex = dominant.hex();
+    const rgb = dominant.css();
+    const hsl = dominant.hsl();
+    const name = namer(hex).ntc[0].name;
+    const hslString = `hsl(${Math.round(hsl[0])}, ${Math.round(hsl[1])}%, ${Math.round(hsl[2])}%)`;
 
-        const dominant = colors[0];
-        const hex = dominant.hex();
-        const rgb = dominant.css();
-        const hsl = dominant.hsl();
-        const name = namer(hex).ntc[0].name;
-        const hslString = `hsl(${Math.round(hsl[0])}, ${Math.round(hsl[1])}%, ${Math.round(hsl[2])}%)`;
-        
-        await ColorHistory.create({
-            user: req.user.id,
-            hex,
-            rgb,
-            hsl: hslString,
-            name,
-            image: req.file.path
-        });
+    await ColorHistory.create({
+      user: req.user.id,
+      hex,
+      rgb,
+      hsl: hslString,
+      name,
+      image: imageUrl 
+    });
 
-        res.json({
-            message: 'Warna berhasil dideteksi',
-            color: {
-                hex, hsl: hslString, rgb, name
-            }
-        });
+    res.json({
+      message: 'Warna berhasil dideteksi',
+      color: { hex, hsl: hslString, rgb, name }
+    });
 
-    } catch (error) {
-        console.error('Error detecting color:', error);
-        res.status(500).json({message: error.message});
-    }   
-}
+  } catch (error) {
+    console.error('Error detecting color:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export const getDetectColor = async (req, res) => {
     try {
@@ -57,14 +50,7 @@ export const getDetectColor = async (req, res) => {
             user: req.user.id
         }).sort({detectedAt: -1});
 
-        const colorHistoryImage = colorHistory.map(history => {
-            const historyObj = history.toObject();
-            if(historyObj.image){
-                historyObj.image = `${req.protocol}://${req.get('host')}\/${historyObj.image}`
-            }
-            return historyObj;
-        })
-        res.json({data: colorHistoryImage});
+        res.json({data: colorHistory});
     } catch (error) {
         console.error('Error detecting color:', error);
         res.status(500).json({message: error.message});
@@ -79,13 +65,7 @@ export const getDetectColorById = async (req, res) => {
         if (!colorHistory) {
             return res.status(404).json({message: 'Riwayat warna tidak ditemukan'});
         }
-
-        const historyObj = colorHistory.toObject();
-        if(historyObj.image){
-            historyObj.image = `${req.protocol}://${req.get('host')}\/${historyObj.image}`
-        }
-
-        res.json({data: historyObj});
+        res.json({data: colorHistory});
 
     } catch (error) {
         console.error('Error detecting color:', error);
@@ -99,26 +79,21 @@ export const deleteDetectColor = async (req, res) => {
         const colorHistory = await ColorHistory.findById(id);
 
         if (!colorHistory) {
-            return res.status(404).json({message: 'Riwayat warna tidak ditemukan'});
+        return res.status(404).json({ message: 'Riwayat warna tidak ditemukan' });
         }
 
-        if(colorHistory.image) {
-            const oldImagePath = path.join(process.cwd(), colorHistory.image);
-            if(fs.existsSync(oldImagePath)) {
-                fs.unlinkSync(oldImagePath);
-            }
-        }
+        // Hapus dari Cloudinary
+        const publicId = colorHistory.image.split('/').pop().split('.')[0]; 
+        await cloudinary.uploader.destroy(`sentra_images/${publicId}`);
 
         await ColorHistory.findByIdAndDelete(id);
 
-        res.json({
-            message: 'Riwayat warna berhasil dihapus',
-        })
+        res.json({ message: 'Riwayat warna berhasil dihapus' });
     } catch (error) {
         console.error('Error detecting color:', error);
-        res.status(500).json({message: error.message});   
+        res.status(500).json({ message: error.message });
     }
-}
+};
 
 export const deleteAllDetectColor = async (req, res) => {
     try {
@@ -132,14 +107,16 @@ export const deleteAllDetectColor = async (req, res) => {
             });
         }
 
-        colorHistories.forEach(history => {
+        for (const history of colorHistories) {
             if (history.image) {
-                const imagePath = path.join(process.cwd(), history.image);
-                if (fs.existsSync(imagePath)) {
-                    fs.unlinkSync(imagePath);
+                try {
+                    const publicId = history.image.split('/').pop().split('.')[0];
+                    await cloudinary.uploader.destroy(`sentra_images/${publicId}`);
+                } catch (cloudinaryError) {
+                    console.error('Error deleting from Cloudinary:', cloudinaryError);
                 }
             }
-        });
+        }
 
         const result = await ColorHistory.deleteMany({ user: userId });
 
