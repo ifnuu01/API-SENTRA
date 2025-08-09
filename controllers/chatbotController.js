@@ -1,11 +1,8 @@
-import fs from 'fs';
-import path from 'path';
 
 export const chatWithGemini = async (req, res) => {
   try {
     const { message } = req.body;
-    const promptPath = path.join(process.cwd(), process.env.SENTRA);
-    const sentraprompt = fs.readFileSync(promptPath, 'utf8');
+    const sentraprompt = process.env.SENTRA;
 
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + process.env.GEMINI_API_KEY, {
       method: 'POST',
