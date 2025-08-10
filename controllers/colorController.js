@@ -17,25 +17,24 @@ export const detectColor = async (req, res) => {
       return res.status(400).json({ message: 'Tidak dapat mendeteksi warna dari gambar' });
     }
 
-    const dominant = colors[0];
-    const hex = dominant.hex();
-    const rgb = dominant.css();
-    const hsl = dominant.hsl();
-    const name = namer(hex).ntc[0].name;
-    const hslString = `hsl(${Math.round(hsl[0])}, ${Math.round(hsl[1])}%, ${Math.round(hsl[2])}%)`;
+    const colorList = colors.map((color) => {
+        const hex = color.hex();
+        const rgb = color.css();
+        const hsl = color.hsl();
+        const name = namer(hex).ntc[0].name;
+        const hslString = `hsl(${Math.round(hsl[0])}, ${Math.round(hsl[1])}%, ${Math.round(hsl[2])}%)`;
+        return {hex, hsl: hslString, rgb, name};
+    });
 
     await ColorHistory.create({
-      user: req.user.id,
-      hex,
-      rgb,
-      hsl: hslString,
-      name,
-      image: imageUrl 
+        user: req.user.id,
+        colors: colorList,
+        image: imageUrl
     });
 
     res.json({
       message: 'Warna berhasil dideteksi',
-      color: { hex, hsl: hslString, rgb, name }
+      colors: colorList
     });
 
   } catch (error) {
