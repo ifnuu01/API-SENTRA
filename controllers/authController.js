@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { generateToken } from "../utils/generateToken.js";
 import { sendVerificationEmail } from "../utils/emailService.js";
 import ColorHistory from "../models/ColorHistory.js";
-
+import cloudinary from "../config/cloudinary.js";
 
 /*
     [X] - Regitser
@@ -248,12 +248,10 @@ export const deleteAccount = async (req, res) => {
         for (const history of colorHistories) {
             if (history.image) {
                 try {
-                    const imagePath = path.join(process.cwd(), history.image);
-                    if (fs.existsSync(imagePath)) {
-                        fs.unlinkSync(imagePath);
-                    }
-                } catch (fileError) {
-                    console.error('Error deleting file:', fileError);
+                    const publicId = history.image.split('/').pop().split('.')[0];
+                    await cloudinary.uploader.destroy(`sentra_images/${publicId}`);
+                } catch (cloudinaryError) {
+                    console.error('Error deleting from Cloudinary:', cloudinaryError);
                 }
             }
         }
