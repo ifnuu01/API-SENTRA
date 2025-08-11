@@ -39,6 +39,7 @@ export const registerUser = async (req, res) => {
                     email: existingUser.email,
                 }
             })
+            return
         }
 
         const hashedPassword = await bcrypt.hash(password, 12);
@@ -276,6 +277,7 @@ export const forgetPassword = async (req, res) => {
             res.status(400).json({
                 message: 'Email tidak terdaftar'
             });
+            return;
         }
 
         const verificationCode = crypto.randomInt(100000, 999999).toString();
@@ -309,12 +311,14 @@ export const verifyForgetPassword = async (req, res) => {
             res.status(400).json({
                 message: 'Email tidak terdaftar'
             });
+            return;
         }
 
         if(user.verificationCode !== verificationCode) {
             res.status(400).json({
                 message: 'Kode verifikasi anda salah'
             });
+            return;
         }
 
         user.verificationCode = undefined;    
@@ -344,6 +348,7 @@ export const newPassword = async (req, res) => {
             res.status(400).json({
                 message: 'Email tidak terdaftar'
             });
+            return;
         }
 
         const hashed = await bcrypt.hash(newPassword, 12);
