@@ -25,6 +25,41 @@ export const validateUpdateProfile = [
     handleValidationErrors
 ]
 
+export const validateForgetPassword = [
+    body('email')
+        .isEmail().normalizeEmail().withMessage('Format email tidak valid').bail(),
+
+    handleValidationErrors
+]
+
+export const validateVerifyForgetPassword = [
+    body('email')
+        .isEmail().normalizeEmail().withMessage('Format email tidak valid').bail(),
+    body('verificationCode')
+        .isLength({ min: 6, max: 6 })
+        .isNumeric()
+        .withMessage('Kode verifikasi harus 6 digit angka'),
+    
+    handleValidationErrors
+]
+
+export const validateNewPassword = [
+    body('newPassword')
+        .isLength({min: 6}).withMessage('Password minimal 6 karakter').bail()
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('Password harus mengandung huruf besar, kecil, dan angka'),
+    body('confirmPassword')
+        .notEmpty().withMessage('Konfirmasi Password tidak boleh kosong').bail()
+        .custom((value, {req}) => {
+            if(value !== req.body.newPassword){
+                throw new Error('Konfirmasi Password tidak sesuai dengan Password Baru');
+            }
+            return true;
+        }),
+    
+    handleValidationErrors
+]
+
 export const validateUpdatePassword = [
     body('oldPassword')
         .isLength({min: 6}).withMessage('Password minimal 6 karakter').bail()

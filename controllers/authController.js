@@ -265,3 +265,96 @@ export const deleteAccount = async (req, res) => {
         res.status(500).json({message: "Internal Server Error"});
     }
 }
+
+export const forgetPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        const user = await User.findOne({email, isVerified: true});
+
+        if(!user) {
+            res.status(400).json({
+                message: 'Email tidak terdaftar'
+            });
+        }
+
+        const verificationCode = crypto.randomInt(100000, 999999).toString();
+        const verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+        
+        user.verificationCode = verificationCode;
+        user.verificationExpires = verificationExpires;
+        
+        await user.save();
+
+        await sendVerificationEmail(email, verificationCode, user.name);
+
+        res.json({
+            message: 'Kode verifikasi berhasil dikirim',
+        });
+
+    } catch (error) {
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+export const verifyForgetPassword = async (req, res) => {
+    try {
+        const { email, verificationCode} = req.body;
+
+        const user = await User.findOne({
+            email, isVerified: true
+        });
+
+        if(!user) {
+            res.status(400).json({
+                message: 'Email tidak terdaftar'
+            });
+        }
+
+        if(user.verificationCode !== verificationCode) {
+            res.status(400).json({
+                message: 'Kode verifikasi anda salah'
+            });
+        }
+
+        user.verificationCode = undefined;    
+        user.verificationExpires = undefined;
+        await user.save();
+
+        const token = generateToken(user._id, '15m');
+
+        res.json({
+            message: 'Kode verifikasi benar silahkan ganti password baru',
+            token
+        });
+
+    } catch (error) {
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+export const newPassword = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { newPassword } = req.body;
+
+        const user = await User.findById(userId);
+
+        if(!user) {
+            res.status(400).json({
+                message: 'Email tidak terdaftar'
+            });
+        }
+
+        const hashed = await bcrypt.hash(newPassword, 12);
+        user.password = hashed;
+        await user.save();
+
+        res.json({
+            message: 'Ubah password berhasil'
+        });
+
+    } catch (error) {
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
