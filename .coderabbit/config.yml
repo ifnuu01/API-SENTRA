@@ -1,0 +1,5 @@
+language: id
+pr_review:
+  enable: true
+  summary: true
+  line_comments: false
